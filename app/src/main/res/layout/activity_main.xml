@@ -66,41 +66,29 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="任务配置"
+            android:text="手势步骤"
             android:textSize="18sp"
             android:textStyle="bold" />
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:text="点击坐标 X" />
-
-        <EditText
-            android:id="@+id/et_x"
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rv_steps"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:inputType="numberDecimal"
-            android:hint="默认屏幕中心" />
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
-            android:text="点击坐标 Y" />
+            android:nestedScrollingEnabled="false" />
 
-        <EditText
-            android:id="@+id/et_y"
+        <Button
+            android:id="@+id/btn_add_step"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:inputType="numberDecimal"
-            android:hint="默认屏幕中心" />
+            android:layout_marginTop="12dp"
+            android:text="＋ 添加步骤" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:text="点击间隔（毫秒）" />
+            android:layout_marginTop="20dp"
+            android:text="步骤间隔（毫秒）" />
 
         <EditText
             android:id="@+id/et_interval"

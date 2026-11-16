@@ -107,14 +107,20 @@ class ClickerService : AccessibilityService() {
     }
 
     /**
-     * 依次执行一轮中的所有步骤，步与步之间按 interval 间隔。
+     * 依次执行一轮中的所有步骤，步与步之间按 interval 间隔；
+     * DELAY 步骤在间隔基础上额外等待其 duration 时长。
      */
     private fun executeSteps(t: ClickTask) {
         if (stopped) return
         var delay = 0L
         for (step in t.steps) {
             mainHandler.postDelayed({ dispatchStep(t, step) }, delay)
+            // 基础间隔
             delay += Randomizer.interval(t.interval, t.humanize.intervalJitter)
+            // DELAY 步骤额外等待
+            if (step.type == StepType.DELAY) {
+                delay += step.duration
+            }
         }
         // 一轮结束后，进入下一轮
         mainHandler.postDelayed({ runNextRound() }, delay)
@@ -131,7 +137,7 @@ class ClickerService : AccessibilityService() {
         when (step.type) {
             StepType.TAP -> dispatchTap(x, y, t.humanize)
             StepType.SWIPE -> dispatchSwipe(x, y, x2, y2, step.duration)
-            StepType.DELAY -> { /* 等待由调度器的 postDelayed 处理 */ }
+            StepType.DELAY -> { /* 等待时长已在调度器中累加 */ }
         }
     }
 

@@ -1,5 +1,8 @@
 package com.clicker.app.engine
 
+import org.json.JSONArray
+import org.json.JSONObject
+
 /**
  * 手势步骤类型。
  */
@@ -53,4 +56,82 @@ data class ClickTask(
 enum class LoopMode {
     INFINITE,  // 无限循环
     FIXED      // 固定次数
+}
+
+// ---------------------------------------------------------------------------
+// JSON 序列化（用于本地持久化，零外部依赖）
+// ---------------------------------------------------------------------------
+
+fun Step.toJson(): JSONObject = JSONObject().apply {
+    put("type", type.name)
+    put("x", x.toDouble())
+    put("y", y.toDouble())
+    put("x2", x2.toDouble())
+    put("y2", y2.toDouble())
+    put("duration", duration)
+}
+
+fun stepFromJson(obj: JSONObject): Step = Step(
+    type = StepType.valueOf(obj.optString("type", "TAP")),
+    x = obj.optDouble("x", 0.0).toFloat(),
+    y = obj.optDouble("y", 0.0).toFloat(),
+    x2 = obj.optDouble("x2", 0.0).toFloat(),
+    y2 = obj.optDouble("y2", 0.0).toFloat(),
+    duration = obj.optLong("duration", 100L),
+)
+
+fun HumanizeConfig.toJson(): JSONObject = JSONObject().apply {
+    put("coordJitter", coordJitter.toDouble())
+    put("pressTime", pressTime)
+    put("pressTimeJitter", pressTimeJitter)
+    put("intervalJitter", intervalJitter)
+    put("randomPauseEnabled", randomPauseEnabled)
+    put("randomPauseEvery", randomPauseEvery)
+    put("randomPauseRange", randomPauseRange)
+}
+
+fun humanizeFromJson(obj: JSONObject): HumanizeConfig = HumanizeConfig(
+    coordJitter = obj.optDouble("coordJitter", 0.0).toFloat(),
+    pressTime = obj.optLong("pressTime", 80L),
+    pressTimeJitter = obj.optLong("pressTimeJitter", 40L),
+    intervalJitter = obj.optLong("intervalJitter", 0L),
+    randomPauseEnabled = obj.optBoolean("randomPauseEnabled", false),
+    randomPauseEvery = obj.optInt("randomPauseEvery", 10),
+    randomPauseRange = obj.optLong("randomPauseRange", 500L),
+)
+
+fun ClickTask.toJson(): JSONObject = JSONObject().apply {
+    put("name", name)
+    val arr = JSONArray()
+    steps.forEach { arr.put(it.toJson()) }
+    put("steps", arr)
+    put("interval", interval)
+    put("loop", loop.name)
+    put("count", count)
+    put("humanize", humanize.toJson())
+}
+
+fun taskFromJson(obj: JSONObject): ClickTask {
+    val stepArr = obj.optJSONArray("steps")
+    val steps = mutableListOf<Step>()
+    if (stepArr != null) {
+        for (i in 0 until stepArr.length()) {
+            steps.add(stepFromJson(stepArr.getJSONObject(i)))
+        }
+    }
+    if (steps.isEmpty()) steps.add(Step(StepType.TAP))
+
+    val loopName = obj.optString("loop", "INFINITE")
+    val loop = try { LoopMode.valueOf(loopName) } catch (e: Exception) { LoopMode.INFINITE }
+
+    val humanize = obj.optJSONObject("humanize")?.let { humanizeFromJson(it) } ?: HumanizeConfig()
+
+    return ClickTask(
+        name = obj.optString("name", "未命名任务"),
+        steps = steps,
+        interval = obj.optLong("interval", 500L),
+        loop = loop,
+        count = obj.optInt("count", 100),
+        humanize = humanize,
+    )
 }
