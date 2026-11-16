@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">连点器</string>
+    <string name="accessibility_service_label">连点器无障碍服务</string>
+    <string name="accessibility_service_description">用于模拟屏幕点击与滑动手势，实现自动连点功能。本服务不读取任何屏幕内容，仅注入手势事件。</string>
+</resources>
