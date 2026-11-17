@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 通知栏 small icon：必须是纯 alpha（白色）单色图标，系统会自动着色 -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- 圆环（外圆 + 内圆，evenOdd 挖空成环），代表"点击目标" -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:fillType="evenOdd"
+        android:pathData="M12,12m-10,0a10,10 0,1 1,20 0a10,10 0,1 1,-20 0 M12,12m-4,0a4,4 0,1 1,8 0a4,4 0,1 1,-8 0" />
+</vector>

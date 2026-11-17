@@ -5,6 +5,7 @@ import android.os.Bundle
 import android.widget.Button
 import android.widget.EditText
 import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -22,6 +23,7 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var tvAccessibility: TextView
     private lateinit var tvOverlay: TextView
+    private lateinit var tvSummary: TextView
     private lateinit var etInterval: EditText
     private lateinit var etCoordJitter: EditText
     private lateinit var etIntervalJitter: EditText
@@ -36,6 +38,7 @@ class MainActivity : AppCompatActivity() {
 
         tvAccessibility = findViewById(R.id.tv_accessibility_status)
         tvOverlay = findViewById(R.id.tv_overlay_status)
+        tvSummary = findViewById(R.id.tv_summary)
         etInterval = findViewById(R.id.et_interval)
         etCoordJitter = findViewById(R.id.et_coord_jitter)
         etIntervalJitter = findViewById(R.id.et_interval_jitter)
@@ -44,10 +47,12 @@ class MainActivity : AppCompatActivity() {
         adapter = StepAdapter(steps, onDelete = { pos ->
             steps.removeAt(pos)
             adapter.notifyDataSetChanged()
+            autoSave()
         }, onEdit = { pos ->
             StepEditDialog.show(this, steps[pos]) { newStep ->
                 steps[pos] = newStep
                 adapter.notifyDataSetChanged()
+                autoSave()
             }
         })
         rvSteps.layoutManager = LinearLayoutManager(this)
@@ -63,18 +68,43 @@ class MainActivity : AppCompatActivity() {
             StepEditDialog.show(this, null) { newStep ->
                 steps.add(newStep)
                 adapter.notifyDataSetChanged()
+                autoSave()
             }
         }
-        findViewById<Button>(R.id.btn_save).setOnClickListener { saveTask() }
+        findViewById<Button>(R.id.btn_save).setOnClickListener {
+            saveTask()
+            Toast.makeText(this, "已保存", Toast.LENGTH_SHORT).show()
+        }
         findViewById<Button>(R.id.btn_show_ball).setOnClickListener {
+            // 显示悬浮球前：先保存当前编辑内容，并检查权限
+            saveTask()
             if (!PermissionHelper.isOverlayEnabled(this)) {
+                Toast.makeText(this, "请先开启悬浮窗权限", Toast.LENGTH_SHORT).show()
                 PermissionHelper.openOverlaySettings(this)
                 return@setOnClickListener
             }
-            startService(Intent(this, FloatingBallService::class.java))
+            if (!PermissionHelper.isAccessibilityEnabled(this)) {
+                Toast.makeText(this, "请先开启无障碍服务", Toast.LENGTH_SHORT).show()
+                PermissionHelper.openAccessibilitySettings(this)
+                return@setOnClickListener
+            }
+            val intent = Intent(this, FloatingBallService::class.java)
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                startForegroundService(intent)
+            } else {
+                startService(intent)
+            }
+        }
+
+        // 参数变化时自动保存
+        listOf(etInterval, etCoordJitter, etIntervalJitter).forEach { et ->
+            et.setOnFocusChangeListener { _, hasFocus ->
+                if (!hasFocus) autoSave()
+            }
         }
 
         loadTaskIntoForm()
+        updateSummary()
     }
 
     override fun onResume() {
@@ -102,15 +132,15 @@ class MainActivity : AppCompatActivity() {
         etIntervalJitter.setText(task.humanize.intervalJitter.toString())
     }
 
-    private fun saveTask() {
-        if (steps.isEmpty()) {
-            steps.add(Step(StepType.TAP, x = 540f, y = 1200f))
-        }
-        val interval = etInterval.text.toString().toLongOrNull() ?: 500L
-        val coordJitter = etCoordJitter.text.toString().toFloatOrNull() ?: 0f
-        val intervalJitter = etIntervalJitter.text.toString().toLongOrNull() ?: 0L
+    /**
+     * 构建当前表单对应的任务对象（不落盘）。
+     */
+    private fun buildTask(): ClickTask {
+        val interval = etInterval.text.toString().toLongOrNull()?.coerceAtLeast(0L) ?: 500L
+        val coordJitter = etCoordJitter.text.toString().toFloatOrNull()?.coerceAtLeast(0f) ?: 0f
+        val intervalJitter = etIntervalJitter.text.toString().toLongOrNull()?.coerceAtLeast(0L) ?: 0L
 
-        val task = ClickTask(
+        return ClickTask(
             name = "连点任务",
             steps = steps.toList(),
             interval = interval,
@@ -122,6 +152,46 @@ class MainActivity : AppCompatActivity() {
                 pressTimeJitter = 40L,
             ),
         )
-        TaskStore.save(this, task)
+    }
+
+    /**
+     * 保存任务到本地存储。
+     */
+    private fun saveTask() {
+        TaskStore.save(this, buildTask())
+        updateSummary()
+    }
+
+    /**
+     * 自动保存：编辑后立即落盘，避免「忘记保存执行旧任务」。
+     */
+    private fun autoSave() {
+        TaskStore.save(this, buildTask())
+        updateSummary()
+    }
+
+    /**
+     * 更新步骤摘要预览。
+     */
+    private fun updateSummary() {
+        val n = steps.size
+        if (n == 0) {
+            tvSummary.text = "尚未添加步骤"
+            return
+        }
+        val tap = steps.count { it.type == StepType.TAP }
+        val swipe = steps.count { it.type == StepType.SWIPE }
+        val delay = steps.count { it.type == StepType.DELAY }
+        val interval = etInterval.text.toString().toLongOrNull() ?: 500L
+
+        val parts = mutableListOf<String>()
+        parts.add("共 $n 步")
+        if (tap > 0) parts.add("点击 $tap")
+        if (swipe > 0) parts.add("滑动 $swipe")
+        if (delay > 0) parts.add("等待 $delay")
+        parts.add("间隔 ${interval}ms")
+
+        tvSummary.text = "步骤摘要：" + parts.joinToString(" · ") +
+            "\n循环：无限 · 点位按序号 1→$n 依次执行"
     }
 }

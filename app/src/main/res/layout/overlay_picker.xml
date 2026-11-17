@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/picker_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#22000000">
+
+    <!-- 十字准星（垂直虚线 + 水平虚线 + 中心点） -->
+    <View
+        android:id="@+id/cross_v"
+        android:layout_width="1dp"
+        android:layout_height="match_parent"
+        android:background="#FF5252" />
+
+    <View
+        android:id="@+id/cross_h"
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="#FF5252" />
+
+    <!-- 坐标显示标签 -->
+    <TextView
+        android:id="@+id/tv_coord"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:background="@drawable/bg_coord_label"
+        android:padding="10dp"
+        android:text="(0, 0)"
+        android:textColor="#FFFFFF"
+        android:textSize="15sp"
+        android:textStyle="bold" />
+
+</FrameLayout>

@@ -43,16 +43,17 @@ object TaskStore {
 
     /**
      * 从旧版单点字段迁移到新 JSON 格式。
+     * 无任何数据时返回空步骤列表（初始无默认点位）。
      */
     private fun migrateLegacy(context: Context): ClickTask {
         val sp = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         val x = sp.getFloat(KEY_X, -1f)
         val y = sp.getFloat(KEY_Y, -1f)
-        val step = if (x >= 0f && y >= 0f) {
-            Step(StepType.TAP, x = x, y = y)
+        val steps = if (x >= 0f && y >= 0f) {
+            listOf(Step(StepType.TAP, x = x, y = y))
         } else {
-            Step(StepType.TAP, x = 540f, y = 1200f)
+            emptyList()
         }
-        return ClickTask(steps = listOf(step))
+        return ClickTask(steps = steps)
     }
 }

@@ -22,6 +22,12 @@ data class Step(
     val x2: Float = 0f,
     val y2: Float = 0f,
     val duration: Long = 100L, // SWIPE 滑动耗时 / DELAY 等待时长（毫秒）
+
+    // ---- 本点位独立参数（非零默认值，每个点位可单独覆盖全局）----
+    val interval: Long = 500L,          // 步骤间隔基准值（毫秒）
+    val intervalJitter: Long = 100L,    // 间隔随机浮动范围（毫秒）
+    val coordJitter: Float = 3f,        // 坐标随机偏移范围（像素）
+    val pressTime: Long = 80L,          // 按压时长（毫秒）
 )
 
 /**
@@ -43,7 +49,7 @@ data class HumanizeConfig(
  */
 data class ClickTask(
     val name: String = "未命名任务",
-    val steps: List<Step> = listOf(Step(StepType.TAP)),
+    val steps: List<Step> = emptyList(),
     val interval: Long = 500L,          // 每轮之间的基准间隔（毫秒）
     val loop: LoopMode = LoopMode.INFINITE,
     val count: Int = 100,               // 固定次数时的总轮数
@@ -69,6 +75,10 @@ fun Step.toJson(): JSONObject = JSONObject().apply {
     put("x2", x2.toDouble())
     put("y2", y2.toDouble())
     put("duration", duration)
+    put("interval", interval)
+    put("intervalJitter", intervalJitter)
+    put("coordJitter", coordJitter.toDouble())
+    put("pressTime", pressTime)
 }
 
 fun stepFromJson(obj: JSONObject): Step = Step(
@@ -78,6 +88,10 @@ fun stepFromJson(obj: JSONObject): Step = Step(
     x2 = obj.optDouble("x2", 0.0).toFloat(),
     y2 = obj.optDouble("y2", 0.0).toFloat(),
     duration = obj.optLong("duration", 100L),
+    interval = obj.optLong("interval", 500L),
+    intervalJitter = obj.optLong("intervalJitter", 100L),
+    coordJitter = obj.optDouble("coordJitter", 3.0).toFloat(),
+    pressTime = obj.optLong("pressTime", 80L),
 )
 
 fun HumanizeConfig.toJson(): JSONObject = JSONObject().apply {
@@ -119,8 +133,6 @@ fun taskFromJson(obj: JSONObject): ClickTask {
             steps.add(stepFromJson(stepArr.getJSONObject(i)))
         }
     }
-    if (steps.isEmpty()) steps.add(Step(StepType.TAP))
-
     val loopName = obj.optString("loop", "INFINITE")
     val loop = try { LoopMode.valueOf(loopName) } catch (e: Exception) { LoopMode.INFINITE }
 
